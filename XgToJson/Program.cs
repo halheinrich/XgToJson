@@ -6,8 +6,8 @@ using XgToJson;
 //   XgToJson <input> [outputDir]
 //
 //     <input>     a .xg/.xgp file, or a directory of them (top-level only).
-//     [outputDir] where to write .json output; defaults to beside each input.
-//                 Created if it does not exist.
+//     [outputDir] where to write .json output; defaults to the current
+//                 directory. Created if it does not exist.
 //
 // Exit codes: 0 = success · 1 = usage/argument error · 2 = conversion failure.
 
@@ -22,12 +22,15 @@ if (args.Length is < 1 or > 2)
 }
 
 string inputPath = args[0];
-string? outputDirArg = args.Length == 2 ? args[1] : null;
+
+// Output destination defaults to the current working directory (not the
+// source location) when no outputDir is given — one default shared by both
+// single-file and directory modes.
+string outputDir = args.Length == 2 ? args[1] : Directory.GetCurrentDirectory();
 
 // Directory input → batch mode: convert every XG-format file within it.
 if (Directory.Exists(inputPath))
 {
-    string outputDir = outputDirArg ?? inputPath;
     Directory.CreateDirectory(outputDir);
 
     DirectoryConversionResult result = Converter.ConvertDirectory(inputPath, outputDir);
@@ -57,9 +60,6 @@ if (File.Exists(inputPath))
         return exitUsage;
     }
 
-    string outputDir = outputDirArg
-        ?? Path.GetDirectoryName(Path.GetFullPath(inputPath))
-        ?? Directory.GetCurrentDirectory();
     Directory.CreateDirectory(outputDir);
 
     try
@@ -90,7 +90,7 @@ static string UsageText() =>
       XgToJson <input> [outputDir]
 
       <input>     a {AcceptedFormats()} file, or a directory of them (top-level only).
-      [outputDir] where to write .json output; defaults to beside each input.
+      [outputDir] where to write .json output; defaults to the current directory.
                   Created if it does not exist.
 
     Exit codes: 0 = success, 1 = usage/argument error, 2 = conversion failure.
