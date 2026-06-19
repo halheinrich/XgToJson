@@ -59,9 +59,9 @@ XgToJson <input> [outputDir]
 ```
 
 - **`<input>` (required).** A `.xg`/`.xgp` file, or a directory. A file with any other extension is rejected (`IsXgFormatFile`). A directory is processed top-level only — every `.xg`/`.xgp` in it, one JSON output per input file.
-- **`[outputDir]` (optional).** Omitted → JSON is written to the current working directory (one default shared by both modes). Given but missing → created (`Directory.CreateDirectory`).
+- **`[outputDir]` (optional).** Omitted → JSON is written to the current working directory (one default shared by both modes). Given → must be an **existing** directory; a non-existent or non-directory path is a usage error (exit `1`), not silently created — this guards against a typo'd or file-looking path spawning a bogus folder.
 - **Output name.** `match.xg → match.json`. Collision (`foo.xg` + `foo.xgp` in one batch) → both keep their source extension (`foo.xg.json`, `foo.xgp.json`); never a silent overwrite.
-- **Exit codes.** `0` success · `1` usage/argument error (wrong arg count, non-XG file, input not found, directory with no XG files) · `2` conversion failure (the single file threw, or ≥1 file failed in directory mode — successful files in the batch are still written).
+- **Exit codes.** `0` success · `1` usage/argument error (wrong arg count, non-XG file, input not found, output dir not an existing directory, directory with no XG files) · `2` conversion failure (the single file threw, or ≥1 file failed in directory mode — successful files in the batch are still written).
 
 The testable seams behind the CLI:
 

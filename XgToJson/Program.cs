@@ -6,8 +6,8 @@ using XgToJson;
 //   XgToJson <input> [outputDir]
 //
 //     <input>     a .xg/.xgp file, or a directory of them (top-level only).
-//     [outputDir] where to write .json output; defaults to the current
-//                 directory. Created if it does not exist.
+//     [outputDir] an existing directory to write .json output into;
+//                 defaults to the current directory.
 //
 // Exit codes: 0 = success · 1 = usage/argument error · 2 = conversion failure.
 
@@ -22,17 +22,23 @@ if (args.Length is < 1 or > 2)
 }
 
 string inputPath = args[0];
+string? outputDirArg = args.Length == 2 ? args[1] : null;
 
-// Output destination defaults to the current working directory (not the
-// source location) when no outputDir is given — one default shared by both
-// single-file and directory modes.
-string outputDir = args.Length == 2 ? args[1] : Directory.GetCurrentDirectory();
+// A supplied output directory must already exist. We do not create it, so a
+// typo or a file path (e.g. "out.xgp") fails loudly rather than silently
+// spawning a folder of that name. Omitted → the current working directory,
+// which always exists. One check, shared by both modes.
+if (outputDirArg is not null && !Directory.Exists(outputDirArg))
+{
+    Console.Error.WriteLine(
+        $"Output directory does not exist or is not a directory: '{outputDirArg}'.");
+    return exitUsage;
+}
+string outputDir = outputDirArg ?? Directory.GetCurrentDirectory();
 
 // Directory input → batch mode: convert every XG-format file within it.
 if (Directory.Exists(inputPath))
 {
-    Directory.CreateDirectory(outputDir);
-
     DirectoryConversionResult result = Converter.ConvertDirectory(inputPath, outputDir);
 
     foreach (string written in result.Written)
@@ -59,8 +65,6 @@ if (File.Exists(inputPath))
             $"'{inputPath}' is not an XG-format file (expected {AcceptedFormats()}).");
         return exitUsage;
     }
-
-    Directory.CreateDirectory(outputDir);
 
     try
     {
@@ -90,8 +94,8 @@ static string UsageText() =>
       XgToJson <input> [outputDir]
 
       <input>     a {AcceptedFormats()} file, or a directory of them (top-level only).
-      [outputDir] where to write .json output; defaults to the current directory.
-                  Created if it does not exist.
+      [outputDir] an existing directory to write .json output into;
+                  defaults to the current directory.
 
     Exit codes: 0 = success, 1 = usage/argument error, 2 = conversion failure.
     """;
