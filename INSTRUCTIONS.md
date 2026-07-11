@@ -26,6 +26,8 @@ https://github.com/halheinrich/XgToJson — branch `main`.
 XgToJson/
 ├── XgToJson.slnx
 ├── INSTRUCTIONS.md
+├── Directory.Packages.props
+├── README.md
 ├── XgToJson/
 │   ├── XgToJson.csproj          console exe (OutputType=Exe)
 │   ├── Program.cs               one-line shim — injects ambient deps into CliRunner.Run
