@@ -13,7 +13,7 @@ namespace XgToJson;
 /// </summary>
 /// <remarks>
 /// The ambient dependencies are injected rather than read inline so the matrix
-/// is deterministically testable: <paramref name="currentDirectory"/> in
+/// is deterministically testable: <c>currentDirectory</c> in
 /// particular lets the CWD-default branch be verified against a temp directory
 /// without mutating process-global <see cref="Directory.GetCurrentDirectory"/>
 /// (which would race under xUnit's parallel test execution). Kept

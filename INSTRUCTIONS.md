@@ -26,6 +26,7 @@ https://github.com/halheinrich/XgToJson — branch `main`.
 XgToJson/
 ├── XgToJson.slnx
 ├── INSTRUCTIONS.md
+├── Directory.Build.props        TreatWarningsAsErrors + GenerateDocumentationFile, all projects
 ├── Directory.Packages.props
 ├── README.md
 ├── XgToJson/

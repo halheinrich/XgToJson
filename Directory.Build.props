@@ -1,0 +1,12 @@
+<Project>
+
+  <!-- Repo-wide build policy: warnings are errors and public surfaces carry
+       XML docs from birth. The test project opts out of doc-file generation
+       (its csproj) but keeps warnings-as-errors, matching the
+       BgArena_Blazor precedent. -->
+  <PropertyGroup>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+</Project>
