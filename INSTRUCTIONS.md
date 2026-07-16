@@ -49,7 +49,7 @@ XgToJson/
 
 **The engine (`Converter`).** One private worker, `Convert(inputPath, outputPath)`, is the single place the `ReadFile → IterateDiagramRequests → Serialize → WriteAllText` sequence lives; both single-file and directory modes route through it. It emits **every** decision (checker and cube) as a JSON array of `BgDecisionData` — no filtering; the downstream consumer thresholds. `IterateDiagramRequests` is always passed `Path.GetFileName(inputPath)` as `sourceFile` (it stamps `DecisionId` and throws on null).
 
-**Serialization single-source (`Converter.JsonOptions`).** One public `JsonSerializerOptions { WriteIndented = true }`, consumed by both the engine's serialize call and the smoke test's deserialize call. No option-level converters are registered: every converter `BgDecisionData` needs is a type-level `[JsonConverter]` in `BgDataTypes_Lib`, so plain options round-trip losslessly. `WriteIndented` is this exe's own presentation choice, not a producer concern — which is why the options live here and are not pushed into the producer.
+**Serialization single-source (`Converter.JsonOptions`).** One `JsonSerializerOptions { WriteIndented = true }`, frozen via `MakeReadOnly` at initialization, consumed by both the engine's serialize call and the smoke test's deserialize call. The freeze is what makes "single source" true rather than aspirational: the instance is shared, so an unfrozen one could be mutated by any consumer and would silently redefine the output format for everything. No option-level converters are registered: every converter `BgDecisionData` needs is a type-level `[JsonConverter]` in `BgDataTypes_Lib`, so plain options round-trip losslessly. `WriteIndented` is this exe's own presentation choice, not a producer concern — which is why the options live here and are not pushed into the producer.
 
 **Output naming (`OutputNaming`).** `JsonFileNameFor` is the base rule (`match.xg → match.json`). `ResolveBatch` derives its candidate from `JsonFileNameFor` and layers collision disambiguation: when `foo.xg` and `foo.xgp` both map to `foo.json`, both retain their full source name (`foo.xg.json`, `foo.xgp.json`) while unique names stay clean. This is the **output** rule and is deliberately separate from the **discovery** rule (`XgFileReader.EnumerateXgFormatFiles`).
 
@@ -68,17 +68,23 @@ XgToJson <input> [outputDir]
 - **Output name.** `match.xg → match.json`. Collision (`foo.xg` + `foo.xgp` in one batch) → both keep their source extension (`foo.xg.json`, `foo.xgp.json`); never a silent overwrite.
 - **Exit codes.** `0` success · `1` usage/argument error (wrong arg count, non-XG file, input not found, output dir not an existing directory, directory with no XG files) · `2` conversion failure (the single file threw, or ≥1 file failed in directory mode — successful files in the batch are still written).
 
-The testable seams behind the CLI:
+That CLI is the *whole* public API. **Nothing in this assembly is `public`** — the
+engine seams below are `internal`, visible to `XgToJson.Tests` only through the
+`InternalsVisibleTo` in `XgToJson.csproj`, exactly like `CliRunner.Run`. They are
+documented here because they are the seams a maintainer tests and modifies
+against, not because anything outside may call them. Should a real library
+consumer ever appear, the answer is to extract an `XgToJson_Lib` — not to widen
+these back to `public` and have a consumer reference an exe.
 
 ```csharp
-public static class Converter
+internal static class Converter
 {
-    public static JsonSerializerOptions JsonOptions { get; }            // the output-format single source
+    public static JsonSerializerOptions JsonOptions { get; }            // the output-format single source, frozen
     public static string ConvertFile(string inputPath, string outputDir);        // → output path
     public static DirectoryConversionResult ConvertDirectory(string inputDir, string outputDir);
 }
 
-public static class OutputNaming
+internal static class OutputNaming
 {
     public static string JsonFileNameFor(string inputPath);                       // match.xg → match.json
     public static IReadOnlyDictionary<string, string> ResolveBatch(IEnumerable<string> inputPaths);

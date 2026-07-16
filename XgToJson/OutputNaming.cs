@@ -9,7 +9,7 @@ namespace XgToJson;
 /// <c>XgFileReader.EnumerateXgFormatFiles</c>): one decides which files are
 /// read, the other decides what the written files are called.
 /// </summary>
-public static class OutputNaming
+internal static class OutputNaming
 {
     /// <summary>
     /// The output filename for a single input, ignoring any collision: the

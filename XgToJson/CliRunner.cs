@@ -17,8 +17,10 @@ namespace XgToJson;
 /// particular lets the CWD-default branch be verified against a temp directory
 /// without mutating process-global <see cref="Directory.GetCurrentDirectory"/>
 /// (which would race under xUnit's parallel test execution). Kept
-/// <c>internal</c> — this is the exe's testable seam, not a library API; the
-/// library surface is <see cref="Converter"/> and <see cref="OutputNaming"/>.
+/// <c>internal</c> — this exe has no library surface at all: the CLI itself is
+/// the public contract, and every type behind it (<see cref="Converter"/> and
+/// <see cref="OutputNaming"/>, the engine seams) is likewise <c>internal</c>,
+/// reachable from the test assembly only through <c>InternalsVisibleTo</c>.
 /// </remarks>
 internal static class CliRunner
 {

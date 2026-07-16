@@ -10,7 +10,7 @@ namespace XgToJson;
 /// as a JSON array. No filtering — every analysed decision is emitted; the
 /// downstream consumer applies its own thresholds.
 /// </summary>
-public static class Converter
+internal static class Converter
 {
     /// <summary>
     /// The single source of truth for XgToJson's output JSON format. Bare
@@ -23,9 +23,22 @@ public static class Converter
     /// presentation choice (human-readable output), not a producer concern.
     /// Both <see cref="ConvertFile"/> and the round-trip smoke test consume
     /// this instance, so the test verifies the engine's actual format rather
-    /// than a parallel copy.
+    /// than a parallel copy. Frozen at initialization: sharing one mutable
+    /// instance would let any consumer (a test, a future caller) flip an option
+    /// and silently redefine the format for everyone.
     /// </summary>
-    public static JsonSerializerOptions JsonOptions { get; } = new() { WriteIndented = true };
+    public static JsonSerializerOptions JsonOptions { get; } = CreateJsonOptions();
+
+    private static JsonSerializerOptions CreateJsonOptions()
+    {
+        var options = new JsonSerializerOptions { WriteIndented = true };
+
+        // populateMissingResolver: true installs the default reflection-based
+        // resolver that Serialize would otherwise attach on first use; the
+        // parameterless overload throws when TypeInfoResolver is still null.
+        options.MakeReadOnly(populateMissingResolver: true);
+        return options;
+    }
 
     /// <summary>
     /// Converts one XG-format file to a JSON file written into
@@ -100,7 +113,7 @@ public static class Converter
 /// <summary>One input file that failed to convert, with the failure message.</summary>
 /// <param name="InputPath">The input file that failed.</param>
 /// <param name="Error">The exception message describing the failure.</param>
-public readonly record struct ConversionFailure(string InputPath, string Error);
+internal readonly record struct ConversionFailure(string InputPath, string Error);
 
 /// <summary>
 /// Outcome of a <see cref="Converter.ConvertDirectory"/> batch:
@@ -109,6 +122,6 @@ public readonly record struct ConversionFailure(string InputPath, string Error);
 /// </summary>
 /// <param name="Written">Full paths of the JSON files written.</param>
 /// <param name="Failed">Inputs that failed, with their error messages.</param>
-public sealed record DirectoryConversionResult(
+internal sealed record DirectoryConversionResult(
     IReadOnlyList<string> Written,
     IReadOnlyList<ConversionFailure> Failed);
