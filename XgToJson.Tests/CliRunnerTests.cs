@@ -25,7 +25,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_NoArgs_ReturnsUsageError()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             var (exit, stdout, stderr) = Run([], sandbox);
 
@@ -38,7 +38,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_TooManyArgs_ReturnsUsageError()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             var (exit, _, stderr) = Run(["a", "b", "c"], sandbox);
 
@@ -54,7 +54,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_OutputDirDoesNotExist_ReturnsUsageError()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string missing = Path.Combine(sandbox, "no-such-dir");
             string input = Path.Combine(sandbox, "whatever.xg"); // never reached
@@ -69,7 +69,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_OutputDirIsAFileNotADirectory_ReturnsUsageError()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string fileAsOutputDir = Path.Combine(sandbox, "out.xgp");
             File.WriteAllText(fileAsOutputDir, "not a directory");
@@ -89,7 +89,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_InputPathNotFound_ReturnsUsageError()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string missing = Path.Combine(sandbox, "ghost.xg");
 
@@ -103,7 +103,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_SingleFileNotXgFormat_ReturnsUsageError()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string textFile = Path.Combine(sandbox, "notes.txt");
             File.WriteAllText(textFile, "plain text, not an XG file");
@@ -118,7 +118,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_DirectoryWithNoXgFiles_ReturnsUsageError()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string inputDir = Path.Combine(sandbox, "input");
             Directory.CreateDirectory(inputDir);
@@ -138,7 +138,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_SingleValidFile_ExplicitOutputDir_WritesJsonThere()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string input = StageOneValidFile(sandbox);
             string outputDir = Path.Combine(sandbox, "out");
@@ -160,7 +160,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_SingleValidFile_OmittedOutputDir_WritesJsonToCurrentDirectory()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string input = StageOneValidFile(sandbox);
 
@@ -178,7 +178,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_DirectoryOfValidFiles_WritesOneJsonPerInput()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string inputDir = Path.Combine(sandbox, "input");
             Directory.CreateDirectory(inputDir);
@@ -203,7 +203,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_SingleMalformedXgFile_ReturnsConversionFailure()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             // A .xg extension passes the (extension-only) format guard but garbage
             // contents throw in ReadFile → the conversion catch → exit 2. Synthesized
@@ -223,7 +223,7 @@ public class CliRunnerTests
     [Fact]
     public void Run_DirectoryWithGoodAndMalformedFiles_ReturnsFailureButWritesGoodOutputs()
     {
-        InSandbox(sandbox =>
+        TestSandbox.Run(sandbox =>
         {
             string inputDir = Path.Combine(sandbox, "input");
             Directory.CreateDirectory(inputDir);
@@ -269,27 +269,6 @@ public class CliRunnerTests
         string inputDir = Path.Combine(sandbox, "input");
         Directory.CreateDirectory(inputDir);
         return SyntheticXgMatch.WriteOne(inputDir);
-    }
-
-    /// <summary>
-    /// Runs <paramref name="body"/> against a freshly created, uniquely named
-    /// temp directory, deleting it afterwards (best effort), so each case is
-    /// isolated from every other and from ambient state.
-    /// </summary>
-    private static void InSandbox(Action<string> body)
-    {
-        string sandbox = Path.Combine(
-            Path.GetTempPath(), "XgToJson.Tests_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(sandbox);
-        try
-        {
-            body(sandbox);
-        }
-        finally
-        {
-            try { Directory.Delete(sandbox, recursive: true); }
-            catch { /* best-effort cleanup */ }
-        }
     }
 
     private static int CountOccurrences(string text, string token)

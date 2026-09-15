@@ -43,19 +43,15 @@ public class ConverterSmokeTests
 
     /// <summary>
     /// The file at the path <paramref name="stageInput"/> returns, given a
-    /// fresh temp sandbox, converts to a JSON file that parses as a non-empty
-    /// array and round-trips back to a <c>List&lt;BgDecisionData&gt;</c> using
-    /// the engine's own <see cref="Converter.JsonOptions"/> (the single source —
-    /// so this verifies the engine's actual format, not a parallel copy). Every
-    /// decision carries a populated <c>Id</c> and <c>Xgid</c>. The sandbox is
-    /// deleted afterwards (best effort).
+    /// fresh <see cref="TestSandbox"/>, converts to a JSON file that parses as a
+    /// non-empty array and round-trips back to a <c>List&lt;BgDecisionData&gt;</c>
+    /// using the engine's own <see cref="Converter.JsonOptions"/> (the single
+    /// source — so this verifies the engine's actual format, not a parallel
+    /// copy). Every decision carries a populated <c>Id</c> and <c>Xgid</c>.
     /// </summary>
     private static void AssertRoundTripsToDecisionList(Func<string, string> stageInput)
     {
-        string sandbox = Path.Combine(
-            Path.GetTempPath(), "XgToJson.Tests_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(sandbox);
-        try
+        TestSandbox.Run(sandbox =>
         {
             string input = stageInput(sandbox);
             string outputDir = Path.Combine(sandbox, "out");
@@ -78,11 +74,6 @@ public class ConverterSmokeTests
                 Assert.False(string.IsNullOrEmpty(d.Xgid),
                     "every decision should carry a populated Xgid");
             });
-        }
-        finally
-        {
-            try { Directory.Delete(sandbox, recursive: true); }
-            catch { /* best-effort cleanup */ }
-        }
+        });
     }
 }

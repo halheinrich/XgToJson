@@ -48,17 +48,14 @@ public class CliBinarySmokeTests
 
     /// <summary>
     /// Runs the built binary with one argument — the path
-    /// <paramref name="stageInput"/> returns, given a fresh temp sandbox — and
-    /// asserts a <c>0</c> exit, a "Wrote" line, no stderr, and exactly one JSON
-    /// file in the binary's working directory (a subdirectory of the sandbox
-    /// holding nothing else), deleting the sandbox afterwards (best effort).
+    /// <paramref name="stageInput"/> returns, given a fresh
+    /// <see cref="TestSandbox"/> — and asserts a <c>0</c> exit, a "Wrote" line,
+    /// no stderr, and exactly one JSON file in the binary's working directory
+    /// (a subdirectory of the sandbox holding nothing else).
     /// </summary>
     private static void AssertBinaryWritesJsonToWorkingDirectory(Func<string, string> stageInput)
     {
-        string sandbox = Path.Combine(
-            Path.GetTempPath(), "XgToJson.Tests_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(sandbox);
-        try
+        TestSandbox.Run(sandbox =>
         {
             string input = stageInput(sandbox);
             string workingDir = Path.Combine(sandbox, "cwd");
@@ -79,12 +76,7 @@ public class CliBinarySmokeTests
             Assert.Contains("Wrote", stdout);
             Assert.True(string.IsNullOrEmpty(stderr), $"expected no stderr, got: {stderr}");
             Assert.Single(Directory.GetFiles(workingDir, "*.json"));
-        }
-        finally
-        {
-            try { Directory.Delete(sandbox, recursive: true); }
-            catch { /* best-effort cleanup */ }
-        }
+        });
     }
 
     /// <summary>
