@@ -18,7 +18,7 @@ https://github.com/halheinrich/XgToJson — branch `main`.
 
 ## Depends on
 
-- **ConvertXgToJson_Lib** — `XgFileReader.ReadFile` (parse), `XgDecisionIterator.IterateDiagramRequests` (decision extraction), and the file-discovery surface `XgFileReader.IsXgFormatFile` / `EnumerateXgFormatFiles` / `XgFormatExtensions`. Transitively brings **BgDataTypes_Lib** (`BgDecisionData` and its type-level JSON converters — the serialized shape) and **BgMoveGen**.
+- **ConvertXgToJson_Lib** — `XgFileReader.ReadFile` (parse), `XgDecisionIterator.IterateDiagramRequests` (decision extraction), and the file-discovery surface `XgFileReader.IsXgFormatFile` / `EnumerateXgFormatFiles` / `XgFormatExtensions`; the test project also references it directly, for `XgFileBuilder` / `XgFileWriter` to synthesize its input. Transitively brings **BgDataTypes_Lib** (`BgDecisionData` and its type-level JSON converters — the serialized shape) and **BgMoveGen**.
 
 ## Layout
 
@@ -38,11 +38,12 @@ generation) and `Directory.Packages.props` (Central Package Management).
   `OutputNaming`, the pure output-filename and collision rules.
 
 **`XgToJson.Tests/`** — xUnit. `CliRunnerTests` runs the whole CLI matrix
-in-process; `OutputNamingTests` pins the naming rules with no corpus. Two
-smokes read the umbrella's `TestData/` corpus through `TestPaths` —
-`ConverterSmokeTests` (file → JSON → file → records) and
-`CliBinarySmokeTests` (the built binary as a child process) — and each
-returns without asserting when that corpus is empty.
+in-process; `OutputNamingTests` pins the naming rules; two smokes cover the
+real wire — `ConverterSmokeTests` (file → JSON → file → records) and
+`CliBinarySmokeTests` (the built binary as a child process). Gating tests
+synthesize their input through `XgFileBuilder` (`SyntheticXgMatch`); the
+umbrella's gitignored `TestData/` corpus, read through `TestPaths`, feeds
+only the two smokes' local-only real-file twins.
 
 ## Architecture
 

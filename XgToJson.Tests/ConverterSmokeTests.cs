@@ -6,32 +6,61 @@ namespace XgToJson.Tests;
 
 /// <summary>
 /// Primary-path smoke coverage for the conversion engine. Exercises the real
-/// wire end to end: a genuine corpus file → <c>ConvertXgToJson_Lib</c> →
+/// wire end to end: an <c>.xg</c> file → <c>ConvertXgToJson_Lib</c> →
 /// JSON → file on disk → parsed back to <see cref="BgDecisionData"/>.
+///
+/// <para>
+/// <b>The gating case</b> converts a match synthesized at test time
+/// (<see cref="SyntheticXgMatch"/>), so it asserts on every checkout.
+/// <b>The real-file case</b> is a local-only extra: it runs the same assertions
+/// on the first file of the umbrella's gitignored <c>TestData/</c> corpus —
+/// an XG-authored file, which a synthesized match cannot stand in for — and is
+/// vacuous on an empty corpus by design, so it gates nothing.
+/// </para>
 /// </summary>
 public class ConverterSmokeTests
 {
-    /// <summary>
-    /// A real <c>.xg</c>/<c>.xgp</c> file converts to a JSON file that parses
-    /// as a non-empty array and round-trips back to a
-    /// <c>List&lt;BgDecisionData&gt;</c> using the engine's own
-    /// <see cref="Converter.JsonOptions"/> (the single source — so this verifies
-    /// the engine's actual format, not a parallel copy). Every decision carries
-    /// a populated <c>Id</c> and <c>Xgid</c>. Fixture-agnostic: picks the first
-    /// available corpus file and no-ops if the corpus is empty.
-    /// </summary>
+    [Fact]
+    public void ConvertFile_SynthesizedMatch_RoundTripsToDecisionList()
+    {
+        AssertRoundTripsToDecisionList(sandbox =>
+        {
+            string inputDir = Path.Combine(sandbox, "input");
+            Directory.CreateDirectory(inputDir);
+            return SyntheticXgMatch.WriteOne(inputDir);
+        });
+    }
+
     [Fact]
     public void ConvertFile_RealCorpusFile_RoundTripsToDecisionList()
     {
         string? input = TestPaths.XgFormatFiles.FirstOrDefault();
         if (input is null)
-            return; // No corpus fixtures present — nothing to smoke (tolerated).
+            return; // Local-only: vacuous on an empty corpus by design (see the class doc).
 
-        string outputDir = Path.Combine(
+        AssertRoundTripsToDecisionList(_ => input);
+    }
+
+    /// <summary>
+    /// The file at the path <paramref name="stageInput"/> returns, given a
+    /// fresh temp sandbox, converts to a JSON file that parses as a non-empty
+    /// array and round-trips back to a <c>List&lt;BgDecisionData&gt;</c> using
+    /// the engine's own <see cref="Converter.JsonOptions"/> (the single source —
+    /// so this verifies the engine's actual format, not a parallel copy). Every
+    /// decision carries a populated <c>Id</c> and <c>Xgid</c>. The sandbox is
+    /// deleted afterwards (best effort).
+    /// </summary>
+    private static void AssertRoundTripsToDecisionList(Func<string, string> stageInput)
+    {
+        string sandbox = Path.Combine(
             Path.GetTempPath(), "XgToJson.Tests_" + Path.GetRandomFileName());
-        Directory.CreateDirectory(outputDir);
+        Directory.CreateDirectory(sandbox);
         try
         {
+            string input = stageInput(sandbox);
+            string outputDir = Path.Combine(sandbox, "out");
+            Directory.CreateDirectory(outputDir);
+
             string outputPath = Converter.ConvertFile(input, outputDir);
 
             Assert.True(File.Exists(outputPath));
@@ -52,7 +81,7 @@ public class ConverterSmokeTests
         }
         finally
         {
-            try { Directory.Delete(outputDir, recursive: true); }
+            try { Directory.Delete(sandbox, recursive: true); }
             catch { /* best-effort cleanup */ }
         }
     }

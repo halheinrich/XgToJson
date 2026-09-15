@@ -4,9 +4,11 @@ namespace XgToJson.Tests;
 
 /// <summary>
 /// Locates the shared <c>backgammon/TestData</c> corpus relative to the test
-/// assembly, mirroring <c>ConvertXgToJson_Lib.Tests.TestPaths</c>. The smoke
-/// test is fixture-agnostic: it iterates whatever <c>.xg</c>/<c>.xgp</c> files
-/// happen to be present and tolerates an empty corpus.
+/// assembly, mirroring <c>ConvertXgToJson_Lib.Tests.TestPaths</c>. Its readers
+/// are local-only real-file cases: fixture-agnostic, they take whatever
+/// <c>.xg</c>/<c>.xgp</c> files happen to be present and are vacuous on an empty
+/// corpus by design. Nothing gating reads it — the corpus is gitignored, so
+/// gating tests synthesize their input through <see cref="SyntheticXgMatch"/>.
 /// </summary>
 internal static class TestPaths
 {

@@ -10,9 +10,11 @@ namespace XgToJson.Tests;
 /// Each case runs in-process against the real <c>ConvertXgToJson_Lib</c> wire
 /// with captured stdout/stderr and an isolated temp sandbox, so the working
 /// directory is injected rather than mutated process-globally (which would race
-/// under xUnit's parallel execution). The success and batch cases are
-/// fixture-agnostic: they pull from the shared corpus and no-op when it is
-/// empty, mirroring <see cref="ConverterSmokeTests"/>.
+/// under xUnit's parallel execution). Every input is made inside the sandbox —
+/// valid <c>.xg</c> files synthesized by <see cref="SyntheticXgMatch"/>,
+/// malformed ones written inline — because these cases pin CLI behaviour that
+/// is indifferent to where a file came from; none reads the <c>TestData/</c>
+/// corpus, so none is vacuous on a checkout without it.
 /// </summary>
 public class CliRunnerTests
 {
@@ -134,14 +136,11 @@ public class CliRunnerTests
     // ------------------------------------------------------------------ //
 
     [Fact]
-    public void Run_SingleRealFile_ExplicitOutputDir_WritesJsonThere()
+    public void Run_SingleValidFile_ExplicitOutputDir_WritesJsonThere()
     {
-        string? input = TestPaths.XgFormatFiles.FirstOrDefault();
-        if (input is null)
-            return; // No corpus fixtures present — nothing to convert (tolerated).
-
         InSandbox(sandbox =>
         {
+            string input = StageOneValidFile(sandbox);
             string outputDir = Path.Combine(sandbox, "out");
             Directory.CreateDirectory(outputDir);
             string currentDirectory = Path.Combine(sandbox, "cwd");
@@ -159,14 +158,12 @@ public class CliRunnerTests
     }
 
     [Fact]
-    public void Run_SingleRealFile_OmittedOutputDir_WritesJsonToCurrentDirectory()
+    public void Run_SingleValidFile_OmittedOutputDir_WritesJsonToCurrentDirectory()
     {
-        string? input = TestPaths.XgFormatFiles.FirstOrDefault();
-        if (input is null)
-            return; // No corpus fixtures present — nothing to convert (tolerated).
-
         InSandbox(sandbox =>
         {
+            string input = StageOneValidFile(sandbox);
+
             // [outputDir] omitted → output must land in the injected working
             // directory (the CWD-default branch).
             var (exit, stdout, stderr) = Run([input], sandbox);
@@ -179,18 +176,13 @@ public class CliRunnerTests
     }
 
     [Fact]
-    public void Run_DirectoryOfRealFiles_WritesOneJsonPerInput()
+    public void Run_DirectoryOfValidFiles_WritesOneJsonPerInput()
     {
-        var sources = TestPaths.XgFormatFiles.Take(3).ToList();
-        if (sources.Count == 0)
-            return; // No corpus fixtures present — nothing to convert (tolerated).
-
         InSandbox(sandbox =>
         {
             string inputDir = Path.Combine(sandbox, "input");
             Directory.CreateDirectory(inputDir);
-            foreach (string src in sources)
-                File.Copy(src, Path.Combine(inputDir, Path.GetFileName(src)));
+            var sources = SyntheticXgMatch.WriteMany(inputDir, count: 3);
             string outputDir = Path.Combine(sandbox, "out");
             Directory.CreateDirectory(outputDir);
 
@@ -231,15 +223,11 @@ public class CliRunnerTests
     [Fact]
     public void Run_DirectoryWithGoodAndMalformedFiles_ReturnsFailureButWritesGoodOutputs()
     {
-        string? good = TestPaths.XgFormatFiles.FirstOrDefault();
-        if (good is null)
-            return; // No corpus fixtures present — nothing to convert (tolerated).
-
         InSandbox(sandbox =>
         {
             string inputDir = Path.Combine(sandbox, "input");
             Directory.CreateDirectory(inputDir);
-            File.Copy(good, Path.Combine(inputDir, Path.GetFileName(good)));
+            SyntheticXgMatch.WriteOne(inputDir);
             File.WriteAllText(Path.Combine(inputDir, "corrupt.xg"), "not a valid XG file");
             string outputDir = Path.Combine(sandbox, "out");
             Directory.CreateDirectory(outputDir);
@@ -269,6 +257,18 @@ public class CliRunnerTests
         using var errWriter = new StringWriter();
         int exit = CliRunner.Run(args, outWriter, errWriter, currentDirectory);
         return (exit, outWriter.ToString(), errWriter.ToString());
+    }
+
+    /// <summary>
+    /// Writes one synthesized match into a fresh <c>input</c> subdirectory of
+    /// <paramref name="sandbox"/> and returns its path — kept apart from the
+    /// output and working directories, so a JSON count there counts outputs only.
+    /// </summary>
+    private static string StageOneValidFile(string sandbox)
+    {
+        string inputDir = Path.Combine(sandbox, "input");
+        Directory.CreateDirectory(inputDir);
+        return SyntheticXgMatch.WriteOne(inputDir);
     }
 
     /// <summary>
