@@ -20,29 +20,29 @@ https://github.com/halheinrich/XgToJson — branch `main`.
 
 - **ConvertXgToJson_Lib** — `XgFileReader.ReadFile` (parse), `XgDecisionIterator.IterateDiagramRequests` (decision extraction), and the file-discovery surface `XgFileReader.IsXgFormatFile` / `EnumerateXgFormatFiles` / `XgFormatExtensions`. Transitively brings **BgDataTypes_Lib** (`BgDecisionData` and its type-level JSON converters — the serialized shape) and **BgMoveGen**.
 
-## Directory tree
+## Layout
 
-```
-XgToJson/
-├── XgToJson.slnx
-├── INSTRUCTIONS.md
-├── Directory.Build.props        repo-wide build policy (TFM, nullable, TWaE, doc gen)
-├── Directory.Packages.props
-├── README.md
-├── XgToJson/
-│   ├── XgToJson.csproj          console exe (OutputType=Exe)
-│   ├── Program.cs               one-line shim — injects ambient deps into CliRunner.Run
-│   ├── CliRunner.cs             the CLI contract — arg parse, dispatch, exit codes (testable)
-│   ├── Converter.cs             the conversion engine + DirectoryConversionResult
-│   └── OutputNaming.cs          output-filename + collision rules (pure)
-└── XgToJson.Tests/
-    ├── XgToJson.Tests.csproj    xUnit
-    ├── TestPaths.cs             locates the shared TestData corpus
-    ├── ConverterSmokeTests.cs   primary-path wire smoke (file → JSON → file)
-    ├── CliRunnerTests.cs        exe-level matrix over CliRunner.Run (in-process)
-    ├── CliBinarySmokeTests.cs   subprocess smoke over the shipped binary
-    └── OutputNamingTests.cs     naming + collision unit tests (no corpus)
-```
+Two projects under `XgToJson.slnx`, governed by repo-root
+`Directory.Build.props` (TFM, nullable, `TreatWarningsAsErrors`, XML doc
+generation) and `Directory.Packages.props` (Central Package Management).
+`README.md` is the repo's one-line description.
+
+**`XgToJson/`** — the console executable. Three areas:
+
+- **Entry** — `Program.cs`, a one-line shim handing the console streams and
+  the working directory to `CliRunner.Run`.
+- **The CLI contract** — `CliRunner`: argument validation, dispatch and the
+  exit codes, testable in-process.
+- **The conversion** — `Converter`, the engine, with its one frozen
+  `JsonOptions` and directory mode's `DirectoryConversionResult`; and
+  `OutputNaming`, the pure output-filename and collision rules.
+
+**`XgToJson.Tests/`** — xUnit. `CliRunnerTests` runs the whole CLI matrix
+in-process; `OutputNamingTests` pins the naming rules with no corpus. Two
+smokes read the umbrella's `TestData/` corpus through `TestPaths` —
+`ConverterSmokeTests` (file → JSON → file → records) and
+`CliBinarySmokeTests` (the built binary as a child process) — and each
+returns without asserting when that corpus is empty.
 
 ## Architecture
 
